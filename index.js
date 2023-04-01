@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const isUrlHttp = require("is-url-http");
 
 let bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -27,9 +26,22 @@ let dict_websites = {};
 let website_counter = 1;
 
 app.post("/api/shorturl", (req, res) => {
+  const isValidUrl = (urlString) => {
+    var urlPattern = new RegExp(
+      "^(https?:\\/\\/)?" + // validate protocol
+        "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // validate domain name
+        "((\\d{1,3}\\.){3}\\d{1,3}))" + // validate OR ip (v4) address
+        "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // validate port and path
+        "(\\?[;&a-z\\d%_.~+=-]*)?" + // validate query string
+        "(\\#[-a-z\\d_]*)?$",
+      "i"
+    ); // validate fragment locator
+    return !!urlPattern.test(urlString);
+  };
   // url
   const url = req.body.url;
-  if (isUrlHttp(url)) {
+
+  if (isValidUrl(url)) {
     if (dict_websites[url] !== undefined) {
       res.json({ original_url: url, short_url: dict_websites[url] });
     } else {
@@ -41,19 +53,15 @@ app.post("/api/shorturl", (req, res) => {
   }
 });
 
-
-
 app.get("/api/shorturl/:link", (req, res) => {
   let ender = false;
   const { link } = req.params;
   Object.entries(dict_websites).forEach(([key, value]) => {
-    console.log(key);
-    console.log(value)
-    if (Number(link) === value){
-      res.redirect(key)
+    if (Number(link) === value) {
+      res.redirect(key);
       ender = true;
     }
- });
+  });
   if (ender === false) {
     res.json({ error: "No short URL found for the given input" });
   }
